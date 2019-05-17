@@ -1,0 +1,74 @@
+#!/usr/bin/env python
+#snakemake to filter bam files and run mOTUs2
+import os
+import glob
+
+#find local files
+FILES=glob.glob('*fq.gz')
+
+#sort list to make sure forward read comes first
+FILES.sort()
+
+#bit to reformat about getting R1 and R2
+bamfile = config['input_bam']
+R0=(bamfile.split('/')[-1])[:-4] #form identification number
+
+#set prefix without any extension
+prefix = (str(bamfile)).split('/')[-1]
+prefix = prefix.split('.bam')[0]
+#Set R1 and R2 filenames
+R1 = ('%s_R1' %prefix)
+R2 = ('%s_R2' %prefix)
+
+
+#load config parameters into variables
+minimum_quality = 20
+minimum_length = 35
+contaminant_db = '/gpfs/home/znb17pxu/data/GRCh38/cancer/decoys/GRCh38_decoys_cancer.fasta'
+outdir= config['outdir']
+
+
+rule all:
+    input: done=("jobdone")
+
+rule mv_gzipped:
+    input: ("%s_unmapped.1.fastq.gz" % R0), ("%s_unmapped.2.fastq.gz" % R0), ("%s_unmapped.0.fastq.gz" % R0), ("%s_genus_motus.biom" %R0), ("%s_genus.motus" %R0)
+    output: done=("jobdone")
+    params: cluster="-R 'rusage[mem=10000]' -M 10000 -o log", queue="short-ib"
+    shell: "mv {input} {outdir}; rm -f *fastq.gz*; touch {output.done}"
+
+rule motus_profile:
+    input: i1=("%s_unmapped.1.fastq.gz" % R0), i2=("%s_unmapped.2.fastq.gz" % R0), i0=("%s_unmapped.0.fastq.gz" % R0)
+    output: o1=("%s_genus_motus.biom" %R0), o2=("%s_genus.motus" %R0)
+    params: cluster="-R 'rusage[mem=60000]' -M 60000 -o motu_log", queue="short-ib"
+    shell: 'motus profile -f {input.i1} -r {input.i2} -s {input.i0} -t 5 -k genus -B -o {output.o1}; motus profile -f {input.i1} -r {input.i2} -s {input.i0} -t 5 -k genus -o {output.o2}'
+
+rule gzip_unmapped_fastq:
+    input: ("%s_unmapped.1.fastq" % R0), ("%s_unmapped.2.fastq" % R0), ("%s_unmapped.0.fastq" %R0), ("%s_unmapped.0.2.fastq" %R0)
+    output: f1=("%s_unmapped.1.fastq.gz" % R0), f2=("%s_unmapped.2.fastq.gz" % R0), f3=("%s_unmapped.0.fastq.gz" % R0), f4=("%s_unmapped.0.2.fastq.gz" % R0)
+    params: cluster="-R 'rusage[mem=10000]' -M 10000 -o log", queue="short-ib"
+    shell: "gzip {input}; cat {output.f4} >> {output.f3}"
+
+rule Paired_Human_depletion:
+    input: inR1=("%s_paired.fastq.gz" %R1), inR2=("%s_paired.fastq.gz" %R2)
+    output: outR1=("%s_unmapped.1.fastq" %R0), outR2=("%s_unmapped.2.fastq" %R0), outR3=("%s_unmapped.0.2.fastq" %R0)
+    params: cluster="-R 'rusage[mem=200000]' -M 200000 -o log", queue="large-mem"
+    shell: "module add bbmap/37.28 java; bbduk.sh in1={input.inR1} in2={input.inR2} out1={output.outR1} out2={output.outR2} outs={output.outR3} k=30 -Xmx230g ref={contaminant_db} mcf=0.5"
+
+rule Single_Human_depletion:
+    input: in1=("%s_unpaired.fastq.gz" %R2), in2=("%s_unpaired.fastq.gz" %R1) 
+    output: temp("%s_unmapped.0.fastq" %R0)
+    params: cluster="-R 'rusage[mem=200000]' -M 200000 -o log", queue="large-mem"
+    shell: "cat {input.in1} >> {input.in2}; bbduk.sh in1={input.in2} out={output} k=30 -Xmx230g ref={contaminant_db} mcf=0.5"
+
+rule Quality_Trimming:
+    input: ("%s.fq.gz" %R1), ("%s.fq.gz" %R2)
+    output: temp("%s_paired.fastq.gz" %R1), temp("%s_unpaired.fastq.gz" %R1), temp("%s_paired.fastq.gz" %R2), temp("%s_unpaired.fastq.gz" %R2)
+    params: cluster="-R 'rusage[mem=30000]' -M 30000 -o log", queue="short-ib"
+    shell: "trimmomatic PE -threads 15 {input} {output} SLIDINGWINDOW:4:{minimum_quality} MINLEN:{minimum_length}"
+
+rule Extract_BAM:
+    input: str(bamfile)
+    output: out1=("%s.fq.gz" %R1), out2=("%s.fq.gz" %R2)
+    params: cluster="-R 'rusage[mem=30000]' -M 30000 -o log", queue="short-ib"
+    shell: "./bam_filter.py --input_bam {input}"
