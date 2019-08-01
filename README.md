@@ -41,7 +41,7 @@ A sample pipeline that doesn't make full use of cluster queueing systems has bee
 
 In the `tutorials/files/` directory we provide a sample bam files to help get you started.
 
-Ensure you have [Singularity](https://singularity.lbl.gov/install-linux) (in alpha release for Mac at time of writing) and [Git](https://gist.github.com/derhuerst/1b15ff4652a867391f03) installed and configured.
+Ensure you have [Singularity](https://singularity.lbl.gov/install-linux) (in alpha release for MacOS at time of writing) and [Git](https://gist.github.com/derhuerst/1b15ff4652a867391f03) installed and configured.
 
 Launch a sample version of SEPATH with:
 
