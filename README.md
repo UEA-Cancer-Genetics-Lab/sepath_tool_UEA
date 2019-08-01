@@ -48,6 +48,7 @@ Launch a sample version of SEPATH with:
 ```
 git clone git@github.com:UEA-Cancer-Genetics-Lab/sepath_tool_UEA.git
 cd sepath_tool_UEA/tutorial/
+singularity pull library://agihawi/default/sepath
 singularity shell sepath_latest.sif
 ./sample_sepath.py
 ```
