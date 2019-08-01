@@ -1,0 +1,1 @@
+motus profile -g 3 -l 75 -f output/reduced_pylori_humanless_paired_R1.fastq -r output/reduced_pylori_humanless_paired_R2.fastq -s output/reduced_pylori_humanless_unpaired_R3.fastq -t 16 -o output/reduced_pylori_species.motus -I output/reduced_pylori_species.bam

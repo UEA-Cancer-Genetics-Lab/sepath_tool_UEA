@@ -1,0 +1,1 @@
+kraken --preload --db dmp/minikraken_20171101_4GB_dustmasked/ --threads 16 --fastq-input output/003_humanless_unpaired_R3.fastq --output output/003_single.kraken

@@ -1,0 +1,1 @@
+cat output/004_report.kraken | awk -F "\t" '$2>0 {print ;}'  > output/004_filtered.kraken

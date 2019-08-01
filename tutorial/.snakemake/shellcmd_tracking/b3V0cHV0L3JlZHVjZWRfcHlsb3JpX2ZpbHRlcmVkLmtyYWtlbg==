@@ -1,0 +1,1 @@
+cat output/reduced_pylori_report.kraken | awk -F "\t" '$2>0 {print ;}'  > output/reduced_pylori_filtered.kraken

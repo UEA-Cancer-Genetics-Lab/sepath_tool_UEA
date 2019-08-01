@@ -1,0 +1,1 @@
+./bam_filter.py --input_bam files/001.bam; mv -f *fq.gz output/

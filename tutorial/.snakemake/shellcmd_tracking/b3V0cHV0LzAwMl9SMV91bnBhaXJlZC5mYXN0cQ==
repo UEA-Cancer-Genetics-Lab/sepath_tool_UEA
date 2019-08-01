@@ -1,0 +1,1 @@
+trimmomatic PE -threads 16 output/002_R1.fq.gz output/002_R2.fq.gz output/002_R1_paired.fastq output/002_R1_unpaired.fastq output/002_R2_paired.fastq output/002_R2_unpaired.fastq SLIDINGWINDOW:4:15 MINLEN:50

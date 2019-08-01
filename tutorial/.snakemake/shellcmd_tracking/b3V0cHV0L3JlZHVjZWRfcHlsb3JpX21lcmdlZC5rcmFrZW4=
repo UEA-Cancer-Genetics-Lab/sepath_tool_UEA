@@ -1,0 +1,1 @@
+cat output/reduced_pylori_single.kraken output/reduced_pylori_paired.kraken > output/reduced_pylori_merged.kraken

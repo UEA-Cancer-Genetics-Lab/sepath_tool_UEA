@@ -1,0 +1,1 @@
+cat output/reduced_pylori_R1_unpaired.fastq >> output/reduced_pylori_R2_unpaired.fastq; bbduk.sh in1=output/reduced_pylori_R2_unpaired.fastq out=output/reduced_pylori_humanless_single.fastq k=30 -Xmx4g ref=dmp/small_human.fna mcf=0.5

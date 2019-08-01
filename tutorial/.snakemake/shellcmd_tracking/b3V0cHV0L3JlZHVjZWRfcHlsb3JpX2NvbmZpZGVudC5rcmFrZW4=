@@ -1,0 +1,1 @@
+kraken-filter --db dmp/minikraken_20171101_4GB_dustmasked/ --threshold 0.2 output/reduced_pylori_merged.kraken > output/reduced_pylori_confident.kraken

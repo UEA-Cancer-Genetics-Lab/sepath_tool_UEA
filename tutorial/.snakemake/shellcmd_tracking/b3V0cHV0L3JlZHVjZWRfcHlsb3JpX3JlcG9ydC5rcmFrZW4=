@@ -1,0 +1,1 @@
+kraken-report --db dmp/minikraken_20171101_4GB_dustmasked/ output/reduced_pylori_confident.kraken > output/reduced_pylori_report.kraken

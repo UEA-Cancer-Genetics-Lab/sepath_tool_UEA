@@ -1,0 +1,1 @@
+bbduk.sh in1=output/004_R1_paired.fastq in2=output/004_R2_paired.fastq out1=output/004_humanless_paired_R1.fastq out2=output/004_humanless_paired_R2.fastq outs=output/004_humanless_unpaired_R3.fastq k=30 -Xmx4g ref=dmp/small_human.fna mcf=0.5; cat output/004_humanless_single.fastq >> output/004_humanless_unpaired_R3.fastq

@@ -1,0 +1,118 @@
+#!/usr/bin/env python
+
+#import a few useful modules
+import os
+import glob
+import re
+import subprocess
+from multiprocessing import cpu_count
+
+###### Set kraken, bbduk and trimming variables here!!! ######
+
+#mOTUs2
+motus_len = "75" #default minimum length for motus_alignment (default=75)
+num_motus = "3" #minimum number of marker genes for detection (default=3)
+
+# Kraken
+krakendb = "dmp/minikraken_20171101_4GB_dustmasked/"
+kraken_confidence = "0.2" # Set Level of Kraken confidence threshold (default=0.2)
+min_clade_reads = "0" # Set the minimum number of reads required to determine a positive result (default=0)
+
+
+#BBDuK Host Depletion
+bbduk_db = "dmp/small_human.fna" #contaminant database - (default='dmp/small_human.fna') - first 4000 lines of human reference
+mcf_val="0.5"   # minimum covered fraction for bbduk (default=0.5)
+bbduk_RAM_gb = "4" # maximum memory requirement of bbduk in gb - best to set to ~ 60-230gb if possible - depending on size of database
+
+#Trimmomatic
+minimum_quality="15" #set minimum quality score for trimmomatic default setting intentionally sequence preservative (default=15)
+minimum_length="50" #set minimum read length (has to be >31)
+
+#General Settings
+max_threads = str(cpu_count()) #Set maximum number of threads available -- default is max available, feel free to swap in for other
+
+####################################################
+
+#Find and reformat input files
+FILES = glob.glob('files/*.bam')
+filez = ["%s" %(re.sub('files/', 'output/', file) ) for file in FILES]
+kraken_files = ["%s" %(re.sub('.bam', '_filtered.kraken', file) ) for file in filez]
+g_motus_files = ["%s" %(re.sub('.bam', '_genus.motus', file) ) for file in filez] 
+s_motus_files = ["%s" %(re.sub('.bam', '_species.motus', file) ) for file in filez]
+files = kraken_files + g_motus_files + s_motus_files
+
+rule all:
+    input: [file for file in files]
+
+rule filter_kraken:
+    input: "output/{sample}_report.kraken"
+    output: "output/{sample}_filtered.kraken"
+    priority: 110
+    shell: "cat {input} | awk -F \"\\t\" '$2>{min_clade_reads} {{print ;}}'  > {output}"
+
+rule report_kraken:
+    input: "output/{sample}_confident.kraken"
+    output: "output/{sample}_report.kraken"
+    priority: 100
+    shell: "kraken-report --db {krakendb} {input} > {output}"
+
+rule confident_kraken:
+    input: "output/{sample}_merged.kraken"
+    output: ("output/{sample}_confident.kraken")
+    priority: 90
+    shell: "kraken-filter --db {krakendb} --threshold 0.2 {input} > {output}"
+
+rule merge_kraken:
+    input: single_in="output/{sample}_single.kraken", paired_in="output/{sample}_paired.kraken"
+    output: merged_kraken=("output/{sample}_merged.kraken")
+    priority: 80
+    shell: "cat {input.single_in} {input.paired_in} > {output.merged_kraken}"
+
+rule unleash_the_single_kraken:
+    input: kraken_in="output/{sample}_humanless_unpaired_R3.fastq"
+    output: single_kraken_out=("output/{sample}_single.kraken")
+    priority: 70
+    shell: "kraken --preload --db {krakendb} --threads {max_threads} --fastq-input {input.kraken_in} --output {output.single_kraken_out}"
+
+rule unleash_the_paired_kraken:
+    input: fwd="output/{sample}_humanless_paired_R1.fastq", rev="output/{sample}_humanless_paired_R2.fastq"
+    output: paired_kraken_out=temp("output/{sample}_paired.kraken")
+    priority: 60
+    shell: "kraken --preload --db {krakendb} --threads {max_threads} --fastq-input --paired {input.fwd} {input.rev} --output {output.paired_kraken_out}"
+
+rule species_motus:
+    input: fwd="output/{sample}_humanless_paired_R1.fastq", rev="output/{sample}_humanless_paired_R2.fastq", single="output/{sample}_humanless_unpaired_R3.fastq"
+    output: motus_species_rep="output/{sample}_species.motus", motus_species_bam="output/{sample}_species.bam"
+    priority: 50
+    shell: "motus profile -g {num_motus} -l {motus_len} -f {input.fwd} -r {input.rev} -s {input.single} -t {max_threads} -o {output.motus_species_rep} -I {output.motus_species_bam}"
+
+rule genus_motus:
+    input: fwd="output/{sample}_humanless_paired_R1.fastq", rev="output/{sample}_humanless_paired_R2.fastq", single="output/{sample}_humanless_unpaired_R3.fastq"
+    output: motus_genus_rep="output/{sample}_genus.motus", motus_genus_bam="output/{sample}_genus.bam"
+    priority: 51
+    shell: "motus profile -g {num_motus} -l {motus_len} -f {input.fwd} -r {input.rev} -s {input.single} -t {max_threads} -k genus -o {output.motus_genus_rep} -I {output.motus_genus_bam}"
+
+rule paired_human_depletion:
+    input: paired1=("output/{sample}_R1_paired.fastq"), paired2=("output/{sample}_R2_paired.fastq"), depleted_single=("output/{sample}_humanless_single.fastq")
+    output: outR1=temp("output/{sample}_humanless_paired_R1.fastq"), outR2=temp("output/{sample}_humanless_paired_R2.fastq"), outR3=temp("output/{sample}_humanless_unpaired_R3.fastq")
+    priority: 30
+    shell: "bbduk.sh in1={input.paired1} in2={input.paired2} out1={output.outR1} out2={output.outR2} outs={output.outR3} k=30 -Xmx{bbduk_RAM_gb}g ref={bbduk_db} mcf={mcf_val}; cat {input.depleted_single} >> {output.outR3}"
+
+rule single_human_depletion:
+    input: single1=("output/{sample}_R1_unpaired.fastq"), single2=("output/{sample}_R2_unpaired.fastq")
+    output: temp("output/{sample}_humanless_single.fastq")
+    priority: 40
+    shell: "cat {input.single1} >> {input.single2}; bbduk.sh in1={input.single2} out={output} k=30 -Xmx{bbduk_RAM_gb}g ref={bbduk_db} mcf={mcf_val}"
+
+rule quality_trimming:
+    input: in1="output/{sample}_R1.fq.gz", in2="output/{sample}_R2.fq.gz"
+    output: paired1=temp("output/{sample}_R1_paired.fastq"), unpaired1=temp("output/{sample}_R1_unpaired.fastq"), paired2=temp("output/{sample}_R2_paired.fastq"), unpaired2=temp("output/{sample}_R2_unpaired.fastq")
+    priority: 20
+    shell: "trimmomatic PE -threads {max_threads} {input} {output} SLIDINGWINDOW:4:{minimum_quality} MINLEN:{minimum_length}"
+
+rule extract_bam:
+    input: "files/{sample}.bam"
+    output: r1=temp("output/{sample}_R1.fq.gz"), r2=temp("output/{sample}_R2.fq.gz")
+    priority: 10
+    shell: "./bam_filter.py --input_bam {input}; mv -f *fq.gz output/"
+

@@ -1,0 +1,50 @@
+# Singularity definition for SEPATH pipelines
+
+bootstrap: docker
+from: ubuntu:16.04
+
+# To Build: sudo /opt/ohpc/pub/libs/singularity/3.2.1/bin/singularity build sepath.sif sepath.def 
+%environment
+    PATH="$PATH:/usr/local/anaconda/bin/"
+%post
+    # install debian packages
+    apt-get update
+    apt-get install -y eatmydata wget curl sudo nano
+    eatmydata apt-get install -y bzip2
+    apt-get clean
+
+    # install anaconda
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ./anaconda.sh && \
+    bash ./anaconda.sh -b -p /usr/local/anaconda ; rm ./anaconda.sh
+
+    # set anaconda path
+    echo $PATH
+    export PATH="$PATH:/usr/local/anaconda/bin/"
+    echo $PATH
+    echo ' '
+    which conda
+    echo ' '
+    echo $PATH
+    echo ' '
+    conda config --add channels bioconda
+    conda config --add channels r
+
+    #install dependencies
+    conda install python=3.6
+    conda install -c bioconda trimmomatic
+    conda install -c bioconda bbmap
+    conda install -c bioconda motus
+    conda install -c bioconda kraken
+    conda install -c bioconda spades
+    conda install -c bioconda pysam
+    conda install pip
+    conda install -c bioconda snakemake
+
+    #upgrade permissions to access database
+    sudo chmod -R 777 /usr/local/anaconda/
+
+    #House Keeping
+    conda clean --tarballs
+
+%runscript
+    echo "Sepath Singularity"

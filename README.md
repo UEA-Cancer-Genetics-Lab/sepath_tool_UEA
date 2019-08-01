@@ -1,6 +1,7 @@
 # SEPATH - Searching for Pathogens Computational Pipeline
 
 -   [Introduction](#introduction)
+    -   [Quick Tutorial](#Quick-Tutorial)
 -   [System Requirements](#system-requirements)
     -   [**Dependencies**](#dependencies)
     -   [**Memory Requirements**](#memory-requirements)
@@ -23,7 +24,7 @@ Authors:
 Introduction
 ------------
 
-SEPATH is a tool that contains pipelines benchmarked to obtain accurate taxonomic classifications from within host tissue sequences. SEPATH is designed to be malleable to the experienced user for adaptation to multiple cluster environments. It is implemented in python 3 and relies on the [Snakemake](https://snakemake.readthedocs.io/en/stable/) workflow management system. SEPATH was produced specifically to provide researchers with the ability to conduct ultra high throughput metagenomic studies from raw data to classification and has been benchmarked on simulated human cancer whole genome sequence datasets.
+SEPATH is a software designed to obtain accurate taxonomic classifications from within host tissue sequences. It is implemented in python 3 and relies on the [Snakemake](https://snakemake.readthedocs.io/en/stable/) workflow management system. SEPATH was produced specifically to provide researchers with the ability to conduct ultra high throughput metagenomic studies from raw data to classification and has been benchmarked on simulated human cancer whole genome sequence datasets.
 
 SEPATH provides users with the ability to:
 
@@ -32,7 +33,29 @@ SEPATH provides users with the ability to:
 
 The latest updates to SEPATH can be found on [GITHUB](https://github.com/), please feel free to submit feature requests and bug reports. If you have used SEPATH please [cite us](https://google.com).
 
-Gihawi, A. Rallapalli, G. Hurst, R. Cooper, C.S. Leggett, R. Brewer, D.S. **SEPATH: Benchmarking the Search for Pathogens in Human Cancer Tissue Whole Genome Sequence Data Leads to Template Pipelines**, Manuscript in preparation.
+Gihawi, A. Rallapalli, G. Hurst, R. Cooper, C.S. Leggett, R.M. Brewer, D.S. **SEPATH: Benchmarking the Search for Pathogens in Human Tissue Whole Genome Sequence Data Leads to Template Pipelines**, Manuscript in preparation.
+
+#### Quick Tutorial
+
+A sample pipeline that doesn't make full use of cluster queueing systems has been made available for those that wish to use SEPATH with minimal to no edits required.
+
+In the `tutorials/files/` directory we provide a sample bam files to help get you started.
+
+Ensure you have [Singularity](https://singularity.lbl.gov/install-linux) (in alpha release for Mac at time of writing) and [Git](https://gist.github.com/derhuerst/1b15ff4652a867391f03) installed and configured.
+
+Launch a sample version of SEPATH with:
+
+```
+git clone git@github.com:Agihawi/SEPATH.git
+singularity pull library://agihawi/default/sepath
+singularity shell sepath_latest.sif
+./sample_sepath.py
+```
+
+This script downloads a minikraken database and standard human reference genomes to the ```./dmp/``` directory. By default, all of the output files will be put into the ```output/``` directory. When the script has stopped running, type ```exit``` to return to your normal shell.
+
+To adapt this for your own analysis, run the pipeline with your own `.bam` files in the files/ directory. all parameters can be set in the first few lines of ```sepath.snake```. You can edit anby databases as required there. Threads are automatically detected, but you can swap this in for any string value. Please refer to our manuscript for recommendations.
+
 
 System Requirements
 -------------------
@@ -52,6 +75,7 @@ As a minimum to run SEPATH, we recommend the following:
 -   [Kraken 1](https://github.com/DerrickWood/kraken) - At the time of writing SEPATH, kraken 2 was in pre-release phase, and so has not been benchmarked. Support for kraken 2 may be added following its stable release.
 -   [SPAdes](http://cab.spbu.ru/software/spades/) for metagenomic assembly v3.11.1
 -   Optional: [Pysam](https://pypi.org/project/pysam/) v0.15.1 - Only required if you require pre-filtering of BAM files
+-   Optional: [Conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html?highlight=conda) - For easier installation of the above dependencies 
 
 #### **Memory Requirements**
 
@@ -64,7 +88,31 @@ Every effort has been made to minimise disk usage but ultimately the required st
 Installation
 ------------
 
-Please see the website of each dependency listed above for installation instructions. We provide a script *check\_dependencies.py* to check that each dependency is functioning correctly prior to SEPATH use.
+After downloading SEPATH, ensure that the SEPATH directory is in your PATH, you can find this out by entering echo $PATH in the console. Navigate to the directory containing SEPATH, add this to the PATH variable using (this will need to be done each time you start a new session, or alternatively you can add it to your .bashrc file to prevent you having to perform this each time):
+
+	cd SEPATH/
+	export PATH=$PATH:$(pwd)
+
+SEPATH Dependencies can be easily installed through conda through an enviromment file by typing the following command in the SEPATH directory:
+
+Ensure conda has channels added 
+
+```
+
+conda config --add channels conda_forge
+conda config --add channels bioconda
+
+```
+
+Then create a conda environment for SEPATH
+
+```
+conda create --name sepath_conda --file bin/environment.yml
+conda activate sepath_conda
+
+```
+
+If installing dependencies manually, please see the website of each dependency listed above for installation instructions. We provide a script *check\_dependencies.py* to check that each dependency is functioning correctly prior to SEPATH use.
 
 This script can be used as follows:
 
@@ -84,13 +132,6 @@ Configuring Cluster Environment Variables & Databases
 #### Cluster Environment
 
 Due to the differences in computing clusters between users, some configuration is required to match the users cluster as well as resource availability. We provide sample files for the LSF job scheduling system which SEPATH was developed on and further instructions on how to adapt SEPATH for your own computing cluster are provided here as well as this [tutorial](https://hpc-carpentry.github.io/hpc-python/17-cluster/) and the [snakemake documentation](https://snakemake.readthedocs.io/en/stable/snakefiles/configuration.html#cluster-configuration) if further explanation is required.
-
-The lines within SEPATH that require editing for your own cluster can be found in the `SEPATH.py` script and the `bin/` directory. edit the `long_job` variable in `SEPATH.py` for your own submission for a job that will last the length of the analysis (unique to each cluster). Within the `bin/` directory, bam_filtering scripts should function ok on many clusters, the scripts in fastq_filtering will need editing for your own cluster. Edit the `launchsnake` variables in each of the scripts ending in `.py` and each of the `params:` lines according to your own cluster. If you would like further assistance in establishing SEPATH on your own cluster, please get in touch! Otherwise, we provide a bit more assistance below:
-
-Ensure that the SEPATH directory is in your PATH, you can find this out by entering `echo $PATH` in the console. Navigate to the directory containing SEPATH, add this to the PATH variable using (this will need to be done each time you start a new session, or alternatively you can add it to your `.bashrc` file to prevent you having to perform this each time):
-
-    cd SEPATH/
-    export PATH=$PATH:$(pwd)
 
 If you are using the University of East Anglia High Performance Computing Cluster (UEA HPC), we provide a dependencies script which you can source. Navigate to the directory containing SEPATH, then type: `source dependencies_UEA_HPC`
 
@@ -134,6 +175,7 @@ Once this script has launched you will be prompted to enter the directory contai
     /gpfs/home/user/scratch/Scripts/SEPATH_BETA/tutorial/files/002.bam
     /gpfs/home/user/scratch/Scripts/SEPATH_BETA/tutorial/files/003.bam
     /gpfs/home/user/scratch/Scripts/SEPATH_BETA/tutorial/files/004.bam
+
 
 #### 2. Processing BAM Files
 

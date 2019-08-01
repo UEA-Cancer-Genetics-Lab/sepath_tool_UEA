@@ -1,0 +1,1 @@
+kraken --preload --db dmp/minikraken_20171101_4GB_dustmasked/ --threads 16 --fastq-input --paired output/reduced_pylori_humanless_paired_R1.fastq output/reduced_pylori_humanless_paired_R2.fastq --output output/reduced_pylori_paired.kraken

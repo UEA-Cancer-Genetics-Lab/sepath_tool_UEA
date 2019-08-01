@@ -1,0 +1,1 @@
+kraken-report --db dmp/minikraken_20171101_4GB_dustmasked/ output/004_confident.kraken > output/004_report.kraken

@@ -1,0 +1,1 @@
+motus profile -g 3 -l 75 -f output/003_humanless_paired_R1.fastq -r output/003_humanless_paired_R2.fastq -s output/003_humanless_unpaired_R3.fastq -t 16 -k genus -o output/003_genus.motus -I output/003_genus.bam

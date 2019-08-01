@@ -1,0 +1,1 @@
+cat output/004_single.kraken output/004_paired.kraken > output/004_merged.kraken
