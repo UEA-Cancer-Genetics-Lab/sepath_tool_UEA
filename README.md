@@ -46,8 +46,8 @@ Ensure you have [Singularity](https://singularity.lbl.gov/install-linux) (in alp
 Launch a sample version of SEPATH with:
 
 ```
-git clone git@github.com:Agihawi/SEPATH.git
-singularity pull library://agihawi/default/sepath
+git clone git@github.com:UEA-Cancer-Genetics-Lab/sepath_tool_UEA.git
+cd sepath_tool_UEA/tutorial/
 singularity shell sepath_latest.sif
 ./sample_sepath.py
 ```
